@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbygEkKigYvPLSOkIV3b1cZUgkfmrKExya-2w9Fe0AmMB6VdGoSq39WzSLFmUdud-f4PpQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzo14ntBx5GoJG6grpPFO5NJGNMj6JydjtyNVFbdcTQAUMVqkfoL_YVv6mYDRO-nVjRTQ/exec";
 
 async function fetchScore() {
   const studentId = document.getElementById("studentId").value.trim();
@@ -50,53 +50,36 @@ async function fetchScore() {
   }
 }
 
-function displayResult(data) {
-  console.log("Received data:", data); // สำหรับ debug
+function displayResult(studentData) {
+  // ใส่ข้อมูลพื้นฐาน
+  document.getElementById("number").innerText = studentData.number;
+  document.getElementById("displayStudentId").innerText = studentData.studentId;
+  document.getElementById("fullName").innerText = studentData.fullName;
+  document.getElementById("classroom").innerText = studentData.classroom;
 
-  // แสดงข้อมูลนักเรียน
-  document.getElementById("number").textContent = data.number || "-";
-  document.getElementById("displayStudentId").textContent = data.studentId || "-";
-  document.getElementById("fullName").textContent = data.fullName || "-";
-  document.getElementById("classroom").textContent = data.classroom || "-";
+  // ฟังก์ชันช่วยสร้างแถวในตาราง
+  const createRows = (scoresObj) => {
+    return Object.entries(scoresObj).map(([key, value]) => `
+      <tr>
+        <td>${key}</td>
+        <td style="text-align: center; font-weight: bold;">${value}</td>
+      </tr>
+    `).join('');
+  };
 
-  // แสดงคะแนนกลางภาค
-  const midtermBody = document.querySelector("#midtermTable tbody");
-  midtermBody.innerHTML = "";
-  
-  if (data.midtermScores) {
-    for (const [subject, score] of Object.entries(data.midtermScores)) {
-      if (score !== null && score !== undefined && score !== "" && score !== 0) {
-        addScoreRow(midtermBody, subject, score);
-      }
-    }
-  }
+  // แสดงคะแนนในตาราง
+  document.getElementById("midtermTable").querySelector("tbody").innerHTML = createRows(studentData.midtermScores);
+  document.getElementById("finalTable").querySelector("tbody").innerHTML = createRows(studentData.finalScores);
 
-  // แสดงคะแนนปลายภาค
-  const finalBody = document.querySelector("#finalTable tbody");
-  finalBody.innerHTML = "";
-  
-  if (data.finalScores) {
-    for (const [subject, score] of Object.entries(data.finalScores)) {
-      if (score !== null && score !== undefined && score !== "" && score !== 0) {
-        addScoreRow(finalBody, subject, score);
-      }
-    }
-  }
+  // สรุปผล
+  const totalElem = document.getElementById("total");
+  const gradeElem = document.getElementById("grade");
 
-  // ถ้าไม่มีข้อมูลแยกกลุ่ม ให้ใช้วิธีเดิม
-  if (!data.midtermScores && !data.finalScores && data.scores) {
-    populateScoresByKeywords(data.scores, midtermBody, finalBody);
-  }
+  totalElem.innerText = studentData.totalScore;
+  gradeElem.innerText = studentData.grade;
 
-  // แสดงสรุปผล
-  const totalScore = data.scores ? data.scores["คะแนนรวมทั้งหมด"] : "-";
-  const grade = data.scores ? data.scores["ผลการเรียน"] : "-";
-  
-  document.getElementById("total").textContent = totalScore || "-";
-  
-  const gradeElement = document.getElementById("grade");
-  gradeElement.textContent = grade || "-";
-  gradeElement.className = `final-grade ${getGradeClass(grade)}`;
+  // เปลี่ยนสีเกรด (เรียกใช้ฟังก์ชันที่คุณครูมีอยู่แล้ว)
+  gradeElem.className = "final-grade " + getGradeClass(studentData.grade.toString());
 
   showResult();
 }
