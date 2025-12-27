@@ -3,87 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบตรวจสอบผลการเรียน</title>
-  <link rel="stylesheet" href="style.css">
+  <title>ระบบตรวจสอบผลการเรียน - ครูกุ้ง</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; background-color: #F3F4F6; color: #111827; overflow-x: hidden; }
+    .orange-brand { background-color: #FF6600; }
+    .text-orange-brand { color: #FF6600; }
+    .btn-submit { background-color: #FF6600; color: white; font-weight: 700; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); text-transform: uppercase; letter-spacing: 0.05em; }
+    .btn-submit:hover { background-color: #E65C00; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(255, 102, 0, 0.3); }
+    .card-base { background: white; border-radius: 8px; border: 1px solid #E5E7EB; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.4s ease; opacity: 0; transform: translateY(20px); }
+    .card-base.show { opacity: 1; transform: translateY(0); }
+    .hidden { display: none; }
+    .progress-bg { background-color: #E5E7EB; border-radius: 999px; height: 14px; overflow: hidden; }
+    .progress-fill { background-color: #FF6600; height: 100%; width: 0%; transition: width 1.5s cubic-bezier(0.1, 0.9, 0.2, 1); }
+  </style>
 </head>
-<body>
-  <div class="container">
-    <h2>🎓 ระบบตรวจสอบผลการเรียน</h2>
+<body class="min-h-screen pb-12">
+
+  <header class="bg-white border-b border-gray-200 mb-8 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 orange-brand rounded flex items-center justify-center text-white font-bold text-xl shadow-inner">K</div>
+        <h1 class="text-xl font-bold uppercase tracking-tight">Kru <span class="text-orange-brand">Juckanapong</span></h1>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-4xl mx-auto px-4">
     
-    <!-- ช่องค้นหา -->
-    <div class="search-section">
-      <h3>กรอกรหัสนักเรียนเพื่อตรวจสอบคะแนน</h3>
-      <div class="input-group">
-        <input type="text" id="studentId" placeholder="เช่น 03968" maxlength="10">
-        <button onclick="fetchScore()">🔍 ตรวจสอบ</button>
-      </div>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="overlay hidden">
-      <div class="overlay-content">
-        <div class="spinner"></div>
-        <p>กำลังตรวจสอบข้อมูล... ⏳</p>
-      </div>
-    </div>
-
-    <!-- Error -->
-    <div id="error" class="error hidden">
-      <strong>ไม่พบข้อมูล</strong><br>
-      กรุณาตรวจสอบรหัสนักเรียนและลองใหม่อีกครั้ง
-    </div>
-
-    <!-- Result -->
-    <div id="result" class="hidden">
-
-      <!-- ข้อมูลนักเรียน -->
-      <div class="student-info card">
-        <h3>📋 ข้อมูลนักเรียน</h3>
-        <p><strong>เลขที่:</strong> <span id="number"></span></p>
-        <p><strong>รหัสนักเรียน:</strong> <span id="displayStudentId"></span></p>
-        <p><strong>ชื่อ-นามสกุล:</strong> <span id="fullName"></span></p>
-        <p><strong>ชั้น/ห้อง:</strong> <span id="classroom"></span></p>
+    <div id="login-section" class="py-10">
+      <div class="text-center mb-10">
+        <h2 class="text-4xl font-black mb-2 uppercase tracking-tighter text-slate-800">ตรวจสอบผลการเรียน</h2>
+        <p class="text-gray-500">กรุณาเข้าสู่ระบบเพื่อดูคะแนน</p>
       </div>
 
-      <!-- คะแนนกลางภาค -->
-      <div class="scores-section card" id="midtermSection">
-        <h3>📘 คะแนนกลางภาค</h3>
-        <table id="midtermTable">
-          <thead>
-            <tr>
-              <th style="width: 70%;">รายการประเมิน</th>
-              <th style="width: 30%; text-align: center;">คะแนน</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <!-- คะแนนปลายภาค -->
-      <div class="scores-section card" id="finalSection">
-        <h3>📕 คะแนนปลายภาค</h3>
-        <table id="finalTable">
-          <thead>
-            <tr>
-              <th style="width: 70%;">รายการประเมิน</th>
-              <th style="width: 30%; text-align: center;">คะแนน</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <!-- สรุปผล -->
-      <div class="summary-section card">
-        <h3>📈 สรุปผลการเรียน</h3>
-        <div class="summary-item">
-          <strong>คะแนนรวมทั้งหมด</strong>
-          <div id="total" class="total-score">-</div>
+      <div class="card-base show p-8 max-w-sm mx-auto shadow-xl">
+        <div class="space-y-5">
+          
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">เลือกระดับชั้น / รายวิชา</label>
+            <select id="classSelect" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded outline-none focus:ring-2 focus:ring-orange-500 transition cursor-pointer text-slate-700 font-medium">
+                <option value="M3_8">ม.3/8 - วิทยาการคำนวณฯ 3</option>
+                <option value="M3_9">ม.3/9 - วิทยาการคำนวณฯ 3</option>
+                <option value="M3_10">ม.3/10 - วิทยาการคำนวณฯ 3</option>
+                <option value="M3_11">ม.3/11 - วิทยาการคำนวณฯ 3</option>
+                <option value="M3_12">ม.3/12 - วิทยาการคำนวณฯ 3</option>
+                <option value="M3_13">ม.3/13 - วิทยาการคำนวณฯ 3</option>
+                <option value="M4_4">ม.4/4 - การออกแบบเครื่องมือสำหรับหุ่นยนต์</option>
+                <option value="M4_10">ม.4/10 - การโปรแกรมและการประยุกต์</option>
+                <option value="M5_4">ม.5/4 - โครงงานวิศวกรรมหุ่นยนต์ฯ 2</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">รหัสนักเรียน</label>
+            <input type="text" id="studentId" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded outline-none focus:ring-2 focus:ring-orange-500 transition" placeholder="ระบุรหัสประจำตัว">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-2">รหัสผ่าน</label>
+            <input type="password" id="password" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded outline-none focus:ring-2 focus:ring-orange-500 transition" placeholder="ระบุรหัสผ่าน">
+          </div>
+          <button onclick="fetchScore()" class="w-full btn-submit py-4 rounded-lg shadow-lg">เข้าสู่ระบบ</button>
+          
+          <div class="text-center mt-6">
+            <a href="admin.html" target="_blank" class="text-[10px] font-bold text-slate-300 hover:text-orange-500 transition uppercase tracking-[0.2em]">
+                Teacher Management System
+            </a>
+          </div>
         </div>
-        <div class="summary-item">
-          <strong>ผลการเรียน</strong>
-          <div id="grade" class="final-grade">-</div>
+      </div>
+    </div>
+
+    <div id="loadingOverlay" class="hidden text-center py-20">
+      <div class="inline-block w-16 h-16 border-4 border-orange-100 border-t-orange-brand rounded-full animate-spin"></div>
+      <p class="mt-4 font-bold text-orange-brand uppercase tracking-widest text-sm animate-pulse">กำลังประมวลผลข้อมูล...</p>
+    </div>
+
+    <div id="result" class="hidden space-y-6">
+      
+      <div class="card-base p-6 border-l-8 border-l-orange-brand">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 id="fullName" class="text-3xl font-bold text-gray-900 tracking-tight">ชื่อ-นามสกุล</h3>
+            <p class="text-gray-500 font-medium">ห้อง: <span id="classroom"></span> | เลขที่: <span id="number" class="text-orange-brand font-bold"></span></p>
+            <p class="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest">Student ID: <span id="displayStudentId"></span></p>
+          </div>
+          <div class="flex gap-2 w-full md:w-auto">
+            <button onclick="openChangePassModal()" class="flex-1 md:flex-none px-4 py-2 bg-slate-100 text-slate-600 rounded-md font-bold text-[10px] hover:bg-orange-50 hover:text-orange-600 transition uppercase tracking-widest border border-slate-200">เปลี่ยนรหัสผ่าน</button>
+            <button onclick="location.reload()" class="flex-1 md:flex-none px-4 py-2 border-2 border-gray-100 text-gray-400 rounded-md font-bold text-[10px] hover:border-orange-brand hover:text-orange-brand transition uppercase tracking-widest">SIGN OUT</button>
+          </div>
         </div>
+      </div>
+
+      <div id="changePassBox" class="hidden p-6 bg-orange-50 rounded-xl border border-orange-200 max-w-md mx-auto">
+          <div class="flex justify-between items-center mb-4">
+              <h4 class="text-sm font-bold text-orange-800 uppercase tracking-wider">ตั้งรหัสผ่านใหม่</h4>
+              <button id="btnCancelPass" onclick="document.getElementById('changePassBox').classList.add('hidden')" class="text-orange-400 hover:text-orange-600">✕</button>
+          </div>
+          <div class="space-y-3">
+              <input type="password" id="newPass" placeholder="ระบุรหัสผ่านใหม่" class="w-full px-4 py-3 rounded-lg border border-orange-100 outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+              <input type="password" id="confirmPass" placeholder="ยืนยันรหัสผ่านใหม่" class="w-full px-4 py-3 rounded-lg border border-orange-100 outline-none focus:ring-2 focus:ring-orange-500 text-sm">
+              <button onclick="submitChangePassword()" class="w-full bg-orange-600 text-white py-3 rounded-lg font-bold text-sm shadow-lg shadow-orange-200 hover:bg-orange-700 transition">ยืนยันการเปลี่ยนรหัสผ่าน</button>
+          </div>
+      </div>
+
+      <div id="dashboard" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card-base p-6 md:col-span-2">
+          <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">ความคืบหน้าการส่งงาน</h4>
+          <div class="progress-bg mb-4">
+            <div id="progressBar" class="progress-fill"></div>
+          </div>
+          <div class="flex justify-between items-end">
+            <p id="workStats" class="text-sm font-bold text-gray-600 uppercase">ส่งงานแล้ว 0 จาก 9 ชิ้น</p>
+            <span id="progressText" class="text-4xl font-black text-orange-brand">0%</span>
+          </div>
+        </div>
+        <div class="card-base p-6 flex flex-col justify-center items-center">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">เกรดเฉลี่ย</p>
+          <div id="grade" class="text-7xl font-black text-orange-brand">-</div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6">
+        <div class="card-base overflow-hidden">
+          <div class="px-6 py-4 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
+            <h4 class="font-bold uppercase tracking-tight text-slate-700 text-xs">ภาระงานกลางภาค เเละคะเเนนสอบ</h4>
+          </div>
+          <table class="w-full text-left" id="midtermTable">
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+        <div class="card-base overflow-hidden">
+          <div class="px-6 py-4 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
+            <h4 class="font-bold uppercase tracking-tight text-slate-700 text-xs">ภาระงานปลายภาค เเละคะเเนนสอบ</h4>
+          </div>
+          <table class="w-full text-left" id="finalTable">
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-base p-8 text-center bg-slate-900 text-white rounded-xl shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10 font-black text-5xl">TOTAL</div>
+        <p class="text-xs font-bold text-orange-400 uppercase tracking-[0.3em] mb-2">คะแนนรวมสะสมทั้งหมด</p>
+        <div id="total" class="text-7xl font-black">0</div>
       </div>
 
     </div>

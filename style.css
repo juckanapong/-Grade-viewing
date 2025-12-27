@@ -312,3 +312,200 @@ button:hover {
   animation: spin 1s linear infinite;
 }
 @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+
+
+
+/* ปรับปรุง Card ให้ดูมีมิติ */
+.card {
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+  border-radius: 15px;
+  overflow: hidden; /* เพื่อให้มุมตารางโค้งตาม Card */
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* ปรับปรุงตารางให้น่าอ่าน */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+th {
+  background-color: #f7fafc !important;
+  color: #4a5568 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+}
+
+td {
+  padding: 15px 12px !important;
+  border-bottom: 1px solid #edf2f7;
+}
+
+/* สร้าง Badge สำหรับสถานะ "ยังไม่ได้ส่ง" */
+.status-missing {
+  background-color: #fff5f5;
+  color: #c53030;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  border: 1px solid #feb2b2;
+}
+
+/* ปรับปรุงส่วนสรุปผล (Summary) */
+.summary-item {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.total-score {
+  font-size: 2rem;
+  color: #4c51bf;
+  font-weight: 800;
+}
+
+
+/* Dark Mode Colors */
+body.dark-mode { background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); }
+body.dark-mode .container { background: rgba(30, 41, 59, 0.95); color: #f7fafc; }
+body.dark-mode h2, body.dark-mode h3, body.dark-mode h4 { color: #edf2f7; }
+body.dark-mode .card { background: #2d3748; color: #edf2f7; }
+body.dark-mode table th { background-color: #4a5568 !important; color: #fff !important; }
+body.dark-mode td { border-bottom: 1px solid #4a5568; color: #e2e8f0; }
+
+/* Theme Button */
+.theme-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  background: #4a5568;
+  color: white;
+  transition: 0.3s;
+}
+
+/* Progress Circle */
+.progress-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(#48bb78 0%, #edf2f7 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 15px auto;
+  position: relative;
+}
+.progress-circle::before {
+  content: "";
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 50%;
+}
+body.dark-mode .progress-circle::before { background: #2d3748; }
+#progressText {
+  position: relative;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2d3748;
+}
+body.dark-mode #progressText { color: #edf2f7; }
+
+.dashboard-grid { margin-bottom: 20px; }
+.dashboard-item { text-align: center; padding: 20px; }
+
+/* เพิ่มต่อท้าย style.css เดิม */
+.grade-a { color: #38a169; border-color: #38a169; } /* เกรด 3.5-4 สีเขียว */
+.grade-b { color: #3182ce; border-color: #3182ce; } /* เกรด 2.5-3 สีฟ้า */
+.grade-c { color: #dd6b20; border-color: #dd6b20; } /* เกรด 1.5-2 สีส้ม */
+.grade-d { color: #e53e3e; border-color: #e53e3e; } /* เกรด 0-1 สีแดง */
+
+.status-missing {
+  color: #e53e3e;
+  font-size: 0.9em;
+  font-weight: normal;
+}
+
+/* Dark Mode Support */
+body.dark-mode { background: #1a202c; color: #f7fafc; }
+body.dark-mode .container { background: #2d3748; box-shadow: none; }
+body.dark-mode h2, body.dark-mode h3 { color: #fff; }
+body.dark-mode .card { background: #3a4454; color: #fff; border: 1px solid #4a5568; }
+body.dark-mode td { color: #cbd5e0; border-bottom: 1px solid #4a5568; }
+body.dark-mode th { background: #4a5568 !important; color: #fff !important; }
+
+/* ปรับแต่ง Badge เกรดให้ชัดเจน */
+.final-grade {
+  font-size: 2.5rem;
+  font-weight: 800;
+  padding: 10px 25px;
+  border-radius: 15px;
+  background: #f8fafc; /* พื้นหลังสว่างเพื่อให้ตัวเลขเด่น */
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  display: inline-block;
+  min-width: 80px;
+  text-align: center;
+  border: 3px solid currentColor; /* สีกรอบตามสีตัวอักษร */
+}
+
+/* ปรับสีตัวอักษรเกรดให้เข้มขึ้นเพื่อให้ตัดกับพื้นหลัง */
+.grade-a { color: #2f855a; background: #f0fff4; } /* เขียวเข้ม */
+.grade-b { color: #2b6cb0; background: #ebf8ff; } /* ฟ้าเข้ม */
+.grade-c { color: #c05621; background: #fffaf0; } /* ส้มเข้ม */
+.grade-d { color: #c53030; background: #fff5f5; } /* แดงเข้ม */
+
+/* แก้ไข Dark Mode ให้แถวพิเศษยังอ่านง่าย */
+body.dark-mode .final-grade {
+  background: #1a202c; /* พื้นหลังมืดในโหมดกลางคืน */
+}
+body.dark-mode tr[style*="background-color: #edf2f7"] {
+  background-color: #4a5568 !important; /* สีเทาเข้มสำหรับแถวพิเศษในโหมดกลางคืน */
+  color: #fff !important;
+}
+body.dark-mode .grade-a { background: #2f855a; color: #f0fff4; }
+body.dark-mode .grade-b { background: #2b6cb0; color: #ebf8ff; }
+body.dark-mode .grade-c { background: #c05621; color: #fffaf0; }
+body.dark-mode .grade-d { background: #c53030; color: #fff5f5; }
+
+/* ปรับปรุงปุ่มค้นหาให้ดูทันสมัย */
+button {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+button:hover {
+  background: linear-gradient(45deg, #764ba2, #667eea);
+  box-shadow: 0 6px 20px rgba(118, 75, 162, 0.5);
+} 
+
+/* ปรับปรุงอินพุตให้ดูสะอาดตา */
+#studentId {
+  border: 1px solid #e2e8f0;
+}   
+
+
+#studentId:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* ปรับปรุงส่วนหัวตารางให้ดูโดดเด่น */
+#midtermTable thead, #finalTable thead {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}   
+#midtermTable th, #finalTable th {
+  letter-spacing: 0.1em;
+}
+

@@ -1,196 +1,235 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzo14ntBx5GoJG6grpPFO5NJGNMj6JydjtyNVFbdcTQAUMVqkfoL_YVv6mYDRO-nVjRTQ/exec";
+// *** สำคัญ: ตรวจสอบ URL นี้ให้เป็น URL ล่าสุดจากการ Deploy (New Version) ของคุณครูนะครับ ***
+const API_URL = "https://script.google.com/macros/s/AKfycbxDOnMKpsJL8fQEVs6H5CVM6YUu04Ep_TkbTrQg_84iP20xleR49R8sPgsry44DhaDuZA/exec";
 
-async function fetchScore() {
-  const studentId = document.getElementById("studentId").value.trim();
-  
-  if (!studentId) {
-    alert("กรุณากรอกรหัสนักเรียน");
-    return;
-  }
+// ฟังก์ชันวิ่งตัวเลข
+function animateCounter(id, target, suffix = "") {
+    const obj = document.getElementById(id);
+    if (!obj) return;
+    if (isNaN(parseFloat(target))) { obj.innerText = target; return; }
+    
+    const duration = 1500;
+    const start = performance.now();
+    const targetNum = parseFloat(target);
 
-  // แสดง loading และซ่อน error/result
-  showLoading();
-  hideError();
-  hideResult();
-
-  try {
-    const res = await fetch(`${API_URL}?studentId=${studentId}`);
-    const data = await res.text();
-
-    hideLoading();
-
-    // ตรวจสอบว่าได้ข้อมูลหรือไม่
-    if (data === "NOT_FOUND" || data.includes("NOT_FOUND")) {
-      showError();
-      return;
+    function update(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const isGrade = id === 'grade';
+        const numValue = isGrade ? (progress * targetNum).toFixed(2) : Math.floor(progress * targetNum);
+        
+        obj.innerText = numValue + suffix;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            obj.innerText = (isGrade ? targetNum.toFixed(2) : Math.round(targetNum)) + suffix;
+        }
     }
+    requestAnimationFrame(update);
+}
 
-    // Parse JSON
-    let studentData;
-    try {
-      studentData = JSON.parse(data);
-    } catch (parseError) {
-      console.error("JSON Parse Error:", parseError);
-      showError();
-      return;
+// --- ฟังก์ชัน Login ---
+async function fetchScore() {
+    const studentId = document.getElementById("studentId").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const selectedClass = document.getElementById("classSelect").value;
+    
+    if (!studentId || !password) { 
+        Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูล', text: 'ต้องใส่รหัสประจำตัวและรหัสผ่าน' });
+        return; 
     }
     
-    // ตรวจสอบว่ามี error ในข้อมูลหรือไม่
-    if (studentData.error || !studentData.studentId) {
-      showError();
-      return;
+    document.getElementById("loadingOverlay").classList.remove("hidden");
+    document.getElementById("login-section").classList.add("hidden");
+
+    try {
+        const res = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({ 
+                action: "studentLogin", 
+                studentId: studentId, 
+                password: password,
+                sheetName: selectedClass 
+            })
+        });
+        const data = await res.json();
+        document.getElementById("loadingOverlay").classList.add("hidden");
+
+        if (data.result === "error" || data.error) { 
+            Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: data.message || 'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่' });
+            document.getElementById("login-section").classList.remove("hidden");
+            return; 
+        }
+        
+        displayResult(data);
+
+        // *** เพิ่ม: ดักจับถ้ารหัสเป็น 1234 ให้บังคับเปลี่ยน ***
+        if (password === "1234") {
+            Swal.fire({
+                icon: 'warning',
+                title: 'แจ้งเตือนความปลอดภัย',
+                text: 'คุณยังใช้รหัสผ่านเริ่มต้น (1234) กรุณาตั้งรหัสผ่านใหม่เพื่อความเป็นส่วนตัว',
+                allowOutsideClick: false, // ห้ามคลิกออก
+                confirmButtonText: 'เปลี่ยนรหัสผ่านเดี๋ยวนี้',
+                confirmButtonColor: '#d97706' // สีส้ม
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // เปิด Modal แบบบังคับ (ส่ง true ไป)
+                    openChangePassModal(true);
+                }
+            });
+        }
+
+    } catch (error) {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById("login-section").classList.remove("hidden");
+        Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
     }
-
-    displayResult(studentData);
-
-  } catch (error) {
-    console.error("Error:", error);
-    hideLoading();
-    showError();
-  }
 }
 
 function displayResult(studentData) {
-  // ใส่ข้อมูลพื้นฐาน
-  document.getElementById("number").innerText = studentData.number;
-  document.getElementById("displayStudentId").innerText = studentData.studentId;
-  document.getElementById("fullName").innerText = studentData.fullName;
-  document.getElementById("classroom").innerText = studentData.classroom;
+    document.getElementById("number").innerText = studentData.number;
+    document.getElementById("displayStudentId").innerText = studentData.studentId;
+    document.getElementById("fullName").innerText = studentData.fullName;
+    document.getElementById("classroom").innerText = studentData.classroom;
 
-  // ฟังก์ชันช่วยสร้างแถวในตาราง
-  const createRows = (scoresObj) => {
-    return Object.entries(scoresObj).map(([key, value]) => `
-      <tr>
-        <td>${key}</td>
-        <td style="text-align: center; font-weight: bold;">${value}</td>
-      </tr>
-    `).join('');
-  };
+    // --- คำนวณคะแนนรวมและเกรด ---
+    let calculatedTotal = 0;
+    const sumScores = (scoresObj) => {
+        if (!scoresObj) return;
+        Object.values(scoresObj).forEach(val => {
+            if (val && !isNaN(val)) calculatedTotal += parseFloat(val);
+        });
+    };
+    sumScores(studentData.midtermScores);
+    sumScores(studentData.finalScores);
 
-  // แสดงคะแนนในตาราง
-  document.getElementById("midtermTable").querySelector("tbody").innerHTML = createRows(studentData.midtermScores);
-  document.getElementById("finalTable").querySelector("tbody").innerHTML = createRows(studentData.finalScores);
+    let calculatedGrade = "0";
+    if (calculatedTotal >= 80) calculatedGrade = "4";
+    else if (calculatedTotal >= 75) calculatedGrade = "3.5";
+    else if (calculatedTotal >= 70) calculatedGrade = "3";
+    else if (calculatedTotal >= 65) calculatedGrade = "2.5";
+    else if (calculatedTotal >= 60) calculatedGrade = "2";
+    else if (calculatedTotal >= 55) calculatedGrade = "1.5";
+    else if (calculatedTotal >= 50) calculatedGrade = "1";
+    else calculatedGrade = "0";
+    // ------------------------------------
 
-  // สรุปผล
-  const totalElem = document.getElementById("total");
-  const gradeElem = document.getElementById("grade");
+    const createRows = (scoresObj) => {
+        if (!scoresObj) return "";
+        return Object.entries(scoresObj).map(([key, value]) => {
+            if (!key || value === "" || value === null) return "";
+            let displayValue = value;
+            let pillClass = "bg-slate-100 text-slate-600"; 
+            if (value === "MISSING") {
+                displayValue = "ยังไม่ส่ง";
+                pillClass = "bg-red-50 text-red-600 border border-red-100";
+            } else if (!isNaN(value)) {
+                if (parseFloat(value) >= 0) pillClass = "bg-emerald-50 text-emerald-600 border border-emerald-100";
+            }
+            return `<tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-4 text-sm font-medium text-slate-700">${key}</td>
+                <td class="p-4 text-center"><span class="px-3 py-1 rounded-md text-xs font-bold ${pillClass}">${displayValue}</span></td>
+            </tr>`;
+        }).join('');
+    };
 
-  totalElem.innerText = studentData.totalScore;
-  gradeElem.innerText = studentData.grade;
+    document.getElementById("midtermTable").querySelector("tbody").innerHTML = createRows(studentData.midtermScores);
+    document.getElementById("finalTable").querySelector("tbody").innerHTML = createRows(studentData.finalScores);
+    animateCounter("total", calculatedTotal);
+    document.getElementById("grade").innerText = calculatedGrade;
+    document.getElementById("result").classList.remove("hidden");
+    
+    const cards = document.querySelectorAll('.card-base');
+    cards.forEach((card, index) => { setTimeout(() => card.classList.add('show'), index * 150); });
 
-  // เปลี่ยนสีเกรด (เรียกใช้ฟังก์ชันที่คุณครูมีอยู่แล้ว)
-  gradeElem.className = "final-grade " + getGradeClass(studentData.grade.toString());
-
-  showResult();
+    updateDashboard(studentData);
 }
 
-function addScoreRow(tbody, subject, score) {
-  const row = document.createElement("tr");
-  const subjectCell = document.createElement("td");
-  const scoreCell = document.createElement("td");
+function updateDashboard(studentData) {
+    const allMid = studentData.midtermScores || {};
+    const allFinal = studentData.finalScores || {};
+    const allWorks = { ...allMid, ...allFinal };
+    
+    let totalItems = 0;
+    let submitted = 0;
 
-  subjectCell.textContent = subject;
-  scoreCell.innerHTML = `<span class="score-value ${getScoreClass(score)}">${score}</span>`;
-  scoreCell.style.textAlign = "center";
-
-  row.appendChild(subjectCell);
-  row.appendChild(scoreCell);
-  tbody.appendChild(row);
-}
-
-// ฟังก์ชันสำรองกรณีไม่มีข้อมูลแยกกลุ่ม
-function populateScoresByKeywords(scores, midtermBody, finalBody) {
-  const midtermKeywords = ["กลางภาค", "ใบงานที่ 1", "ชิ้นงานที่"];
-  const finalKeywords = ["ปลายภาค", "ใบงานที่ 2", "ใบงานที่ 3", "infographic", "เทคโนโลยี"];
-  const excludeItems = ["คะแนนรวมทั้งหมด", "ผลการเรียน"];
-
-  for (const [subject, score] of Object.entries(scores)) {
-    if (excludeItems.includes(subject)) continue;
-    if (score === null || score === undefined || score === "" || score === 0) continue;
-
-    const isMidterm = midtermKeywords.some(keyword => subject.includes(keyword));
-    const isFinal = finalKeywords.some(keyword => subject.includes(keyword));
-
-    if (isMidterm) {
-      addScoreRow(midtermBody, subject, score);
-    } else if (isFinal) {
-      addScoreRow(finalBody, subject, score);
-    } else {
-      // ถ้าไม่แน่ใจ ใส่ไว้ในกลางภาค
-      addScoreRow(midtermBody, subject, score);
+    for (const [key, val] of Object.entries(allWorks)) {
+        if (key && val !== "") {
+            if (key.includes("สอบกลางภาค") || key.includes("สอบปลายภาค")) continue;
+            totalItems++;
+            if (val !== "MISSING") submitted++;
+        }
     }
-  }
+
+    const percent = totalItems === 0 ? 0 : Math.round((submitted / totalItems) * 100);
+    const worksHeader = document.querySelector("#dashboard h4");
+    if(worksHeader) worksHeader.innerText = "ความคืบหน้าการส่งงาน";
+
+    setTimeout(() => {
+        document.getElementById('progressBar').style.width = percent + "%";
+        document.getElementById('workStats').innerText = `ส่งงานแล้ว ${submitted} จากทั้งหมด ${totalItems} ชิ้น`;
+        animateCounter("progressText", percent, "%"); 
+    }, 500);
 }
 
-function getScoreClass(score) {
-  const numScore = parseFloat(score);
-  if (isNaN(numScore)) return "score-average";
-  if (numScore >= 80) return "score-excellent";
-  if (numScore >= 70) return "score-good";
-  if (numScore >= 60) return "score-average";
-  return "score-poor";
+// --- ส่วนจัดการรหัสผ่าน (แก้ไขใหม่: รองรับการบังคับเปลี่ยน) ---
+function openChangePassModal(force = false) { 
+    document.getElementById('changePassBox').classList.remove('hidden');
+    
+    // ถ้า force = true (คือยังใช้ 1234) ให้ซ่อนปุ่มยกเลิก
+    const cancelBtn = document.getElementById('btnCancelPass');
+    if (cancelBtn) {
+        if (force) {
+            cancelBtn.classList.add('hidden'); // ซ่อนปุ่มยกเลิก
+        } else {
+            cancelBtn.classList.remove('hidden'); // โชว์ปุ่มยกเลิก (กรณีเปลี่ยนเองตามปกติ)
+        }
+    }
 }
 
-function getGradeClass(grade) {
-  if (!grade) return "";
-  const g = grade.toString().toUpperCase();
-  if (g.includes("4") || g.includes("A")) return "grade-a";
-  if (g.includes("3") || g.includes("B")) return "grade-b";
-  if (g.includes("2") || g.includes("C")) return "grade-c";
-  return "grade-d";
-}
+async function submitChangePassword() {
+    const studentId = document.getElementById("displayStudentId").innerText;
+    const newPass = document.getElementById("newPass").value;
+    const confirmPass = document.getElementById("confirmPass").value;
+    const selectedClass = document.getElementById("classSelect").value; 
 
-function showLoading() {
-  const overlay = document.getElementById("loadingOverlay");
-  if (overlay) {
-    overlay.classList.remove("hidden");
-  }
-}
+    if (!newPass || !confirmPass) { Swal.fire('คำเตือน', 'กรุณากรอกรหัสผ่าน', 'warning'); return; }
+    if (newPass !== confirmPass) { Swal.fire('ผิดพลาด', 'รหัสผ่านไม่ตรงกัน', 'error'); return; }
 
-function hideLoading() {
-  const overlay = document.getElementById("loadingOverlay");
-  if (overlay) {
-    overlay.classList.add("hidden");
-  }
-}
-
-function showError() {
-  const errorElement = document.getElementById("error");
-  if (errorElement) {
-    errorElement.classList.remove("hidden");
-    errorElement.classList.add("shake");
-    setTimeout(() => errorElement.classList.remove("shake"), 600);
-  }
-}
-
-function hideError() {
-  const errorElement = document.getElementById("error");
-  if (errorElement) {
-    errorElement.classList.add("hidden");
-    errorElement.classList.remove("shake");
-  }
-}
-
-function showResult() {
-  const result = document.getElementById("result");
-  result.classList.remove("hidden");
-  result.classList.add("fadeIn");
-}
-
-function hideResult() {
-  const result = document.getElementById("result");
-  result.classList.add("hidden");
-  result.classList.remove("fadeIn");
-}
-
-// กด Enter เพื่อค้นหา
-document.addEventListener("DOMContentLoaded", function() {
-  const studentIdInput = document.getElementById("studentId");
-  if (studentIdInput) {
-    studentIdInput.addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        fetchScore();
-      }
+    Swal.fire({
+        title: 'ยืนยันการเปลี่ยนรหัสผ่าน?', showCancelButton: true, confirmButtonText: 'ยืนยัน'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            document.getElementById("loadingOverlay").classList.remove("hidden");
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "changePassword", studentId, newPassword: newPass, sheetName: selectedClass })
+                });
+                const response = await res.json();
+                document.getElementById("loadingOverlay").classList.add("hidden");
+                
+                if (response.result === "success") {
+                    document.getElementById('changePassBox').classList.add('hidden'); // ปิด Modal
+                    Swal.fire('สำเร็จ', response.message, 'success').then(() => {
+                        // ไม่ต้อง Reload หน้าแล้ว อัปเดตค่า input password เป็นค่าใหม่เลย (เผื่อกดปุ่มเปลี่ยนอีกรอบ)
+                        document.getElementById("password").value = newPass; 
+                        
+                        // ถ้าเป็นการบังคับเปลี่ยน ให้แสดงปุ่มยกเลิกกลับมาเหมือนเดิม เผื่อครั้งหน้าเปลี่ยนเอง
+                        const cancelBtn = document.getElementById('btnCancelPass');
+                        if (cancelBtn) cancelBtn.classList.remove('hidden');
+                    });
+                } else {
+                    Swal.fire('ผิดพลาด', response.message, 'error');
+                }
+            } catch (error) {
+                document.getElementById("loadingOverlay").classList.add("hidden");
+                Swal.fire('Error', 'เชื่อมต่อไม่ได้', 'error');
+            }
+        }
     });
-  }
-});
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => { document.body.classList.toggle('bg-slate-900'); });

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ระบบจัดการข้อมูลนักเรียน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .input-edit { border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 4px; outline: none; transition: all 0.2s; }
+        .input-edit:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1); }
+        .relative.group:hover .tooltip { display: block; }
+        .tooltip { 
+            display: none; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); 
+            background: #1e293b; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 10px; white-space: nowrap; z-index: 50; 
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="adminLoginSection" class="flex items-center justify-center min-h-screen bg-slate-100">
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
+            <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-3xl">🔐</span>
+            </div>
+            <h2 class="text-2xl font-bold mb-4 text-slate-800">Admin Login</h2>
+            <input type="password" id="adminKey" placeholder="รหัสผ่าน Admin" class="w-full px-4 py-3 rounded-lg border border-slate-200 mb-4 outline-none focus:ring-2 focus:ring-indigo-500">
+            <button onclick="checkAdminLogin()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">เข้าสู่ระบบ</button>
+        </div>
+    </div>
+
+    <div id="adminMainContent" class="hidden p-4 md:p-8">
+        <div class="max-w-[100%] mx-auto">
+            
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col xl:flex-row justify-between items-center gap-4">
+                <h1 class="text-xl font-bold text-indigo-700 flex items-center gap-2">🛠️ แผงควบคุมคุณครู</h1>
+                
+                <div class="flex flex-wrap gap-2 items-center justify-center">
+                    <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-2">
+                        <span class="text-xs font-bold text-slate-500 uppercase">ห้อง:</span>
+                        <select id="adminSheetSelect" onchange="reloadAdminData()" class="text-sm font-bold text-indigo-600 bg-transparent outline-none cursor-pointer">
+                            <option value="M3_8">ม.3/8 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M3_9">ม.3/9 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M3_10">ม.3/10 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M3_11">ม.3/11 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M3_12">ม.3/12 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M3_13">ม.3/13 - วิทยาการคำนวณฯ 3</option>
+                            <option value="M4_4">ม.4/4 - การออกแบบฯ</option>
+                            <option value="M4_10">ม.4/10 - การโปรแกรมฯ</option>
+                            <option value="M5_4">ม.5/4 - โครงงานฯ</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="openHeaderModal()" class="bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-100 text-sm font-bold border border-orange-100 transition">📝 ตั้งชื่อหัวข้องาน</button>
+                    <button onclick="loadAdminData()" class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg hover:bg-indigo-100 text-sm font-bold border border-indigo-100 transition">🔄 รีเฟรช</button>
+                    <button onclick="resetAllPasswords()" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-100 text-sm font-bold border border-red-100 transition">⚠️ รีเซ็ตรหัส</button>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                 <input type="text" id="adminSearch" placeholder="🔍 ค้นหาด้วย เลขประจำตัว หรือ ชื่อนักเรียน..." class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200 overflow-x-auto">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3 sticky left-0 bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">ข้อมูลนักเรียน</th>
+                            <th class="p-3 text-center bg-blue-50/50 text-blue-800 border-l border-blue-100">กลางภาค (10งาน+สอบ)</th>
+                            <th class="p-3 text-center bg-green-50/50 text-green-800 border-l border-green-100">ปลายภาค (10งาน+สอบ)</th>
+                            <th class="p-3 text-center border-l">รหัสผ่าน</th>
+                            <th class="p-3 text-center">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="headerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">📝 กำหนดชื่อชิ้นงาน (1-10)</h3>
+                <button onclick="document.getElementById('headerModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            
+            <div class="p-3 bg-yellow-50 text-yellow-800 text-sm rounded-lg mb-4 border border-yellow-100">
+                💡 <b>หมายเหตุ:</b> หัวข้อ <b>"สอบกลางภาค"</b> และ <b>"สอบปลายภาค"</b> ระบบจะสร้างให้เองโดยอัตโนมัติ (ไม่ต้องกรอก)
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 p-5 rounded-xl border border-blue-100">
+                    <h4 class="font-bold text-blue-800 mb-4 flex items-center gap-2">📘 กลางภาค (งานที่ 1-10)</h4>
+                    <div id="midHeaderInputs" class="space-y-3"></div>
+                    <div class="mt-3 p-2 bg-blue-100 rounded text-center text-xs font-bold text-blue-600">
+                        + สอบกลางภาค (Auto)
+                    </div>
+                </div>
+                <div class="bg-green-50 p-5 rounded-xl border border-green-100">
+                    <h4 class="font-bold text-green-800 mb-4 flex items-center gap-2">📗 ปลายภาค (งานที่ 1-10)</h4>
+                    <div id="finalHeaderInputs" class="space-y-3"></div>
+                    <div class="mt-3 p-2 bg-green-100 rounded text-center text-xs font-bold text-green-600">
+                        + สอบปลายภาค (Auto)
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-8 pt-4 border-t border-slate-100">
+                <button onclick="document.getElementById('headerModal').classList.add('hidden')" class="px-5 py-2.5 text-slate-500 hover:bg-slate-50 rounded-lg font-medium transition">ยกเลิก</button>
+                <button onclick="saveHeaders()" class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition">บันทึกชื่อหัวข้อ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // *** สำคัญ: ตรวจสอบ URL นี้ให้เป็น URL ล่าสุดจากการ Deploy (New Version) ของคุณครู ***
+        const API_URL = "https://script.google.com/macros/s/AKfycbxDOnMKpsJL8fQEVs6H5CVM6YUu04Ep_TkbTrQg_84iP20xleR49R8sPgsry44DhaDuZA/exec"; 
+        
+        let allData = [];
+        let headerNames = []; 
+        let currentAdminPass = "";
+
+        // --- Login ---
+        async function checkAdminLogin() {
+            const input = document.getElementById("adminKey").value;
+            Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'adminLogin', password: input }) });
+                const result = await res.json();
+                if (result.result === 'success') {
+                    currentAdminPass = input;
+                    document.getElementById("adminLoginSection").classList.add("hidden");
+                    document.getElementById("adminMainContent").classList.remove("hidden");
+                    reloadAdminData();
+                } else { Swal.fire({ icon: 'error', title: 'รหัสผ่านผิด', text: 'กรุณากรอกรหัส Admin ให้ถูกต้อง' }); }
+            } catch (e) { Swal.fire('Error', 'เชื่อมต่อ Server ไม่ได้', 'error'); }
+        }
+
+        // --- Load Data ---
+        async function reloadAdminData() {
+            Swal.fire({ title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            await fetchWorkHeaders();
+            await loadAdminData();
+            Swal.close();
+        }
+
+        async function fetchWorkHeaders() {
+            try {
+                const sheet = document.getElementById("adminSheetSelect").value;
+                const res = await fetch(`${API_URL}?action=getWorkNames&sheet=${sheet}`);
+                headerNames = await res.json();
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadAdminData() {
+            try {
+                const sheet = document.getElementById("adminSheetSelect").value;
+                const res = await fetch(`${API_URL}?action=readAll&adminPass=${currentAdminPass}&sheet=${sheet}`);
+                allData = await res.json();
+                renderTable(allData);
+            } catch(e) { console.error(e); }
+        }
+
+        // --- Render Table ---
+        function renderTable(data) {
+            const term = document.getElementById("adminSearch").value.toLowerCase();
+            const filtered = data.filter(s => (s.studentId+s.fullName).toLowerCase().includes(term));
+            const tbody = document.getElementById("adminTableBody");
+            
+            // Helper สร้างช่องกรอกคะแนน
+            const createInputs = (scores, id, type) => scores.map((s, i) => {
+                let titleIndex = (type === 'mid') ? i : i + 12;
+                let rawTitle = headerNames[titleIndex];
+                let title = (rawTitle && rawTitle.trim() !== "") ? rawTitle : "";
+                
+                let isExam = (i === 10);
+                let bgClass = isExam ? "bg-yellow-50 focus:ring-yellow-500 font-bold text-indigo-700" : "bg-white focus:ring-indigo-500";
+                let tooltipHtml = title ? `<span class="tooltip">${title}</span>` : "";
+                let titleAttr = title ? `title="${title}"` : "";
+                
+                return `<div class="relative group inline-block mx-[1px]">
+                    <input type="text" value="${s}" id="${type}-${id}-${i}" 
+                        class="w-9 h-7 text-center border rounded text-xs focus:ring-1 ${bgClass}" 
+                        ${titleAttr}>
+                    ${tooltipHtml}
+                </div>`;
+            }).join('');
+
+            tbody.innerHTML = filtered.map(s => `
+                <tr class="hover:bg-slate-50 border-b last:border-0 transition">
+                    <td class="p-3 sticky left-0 bg-white z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                        <div class="flex flex-col gap-1">
+                            <div class="flex gap-2 items-center mb-1">
+                                <input value="${s.number}" id="num-${s.studentId}" class="w-8 text-center border rounded text-xs font-bold bg-slate-50" title="เลขที่">
+                                <span class="text-indigo-600 font-bold w-12 text-xs">${s.studentId}</span>
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                <input value="${s.fullName}" id="name-${s.studentId}" class="w-24 border rounded text-xs px-2 py-1" title="ชื่อ-สกุล">
+                                <input value="${s.classroom}" id="class-${s.studentId}" class="w-12 border rounded text-xs px-1 py-1 text-center" title="ห้อง">
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3 bg-blue-50/30 whitespace-nowrap border-l border-blue-100 text-center">
+                        ${createInputs(s.midtermRaw, s.studentId, 'mid')}
+                    </td>
+                    <td class="p-3 bg-green-50/30 whitespace-nowrap border-l border-green-100 text-center">
+                        ${createInputs(s.finalRaw, s.studentId, 'final')}
+                    </td>
+                    <td class="p-3 text-center border-l">
+                        <input value="${s.password}" id="pass-${s.studentId}" class="w-16 text-center border rounded text-xs font-mono bg-slate-50 text-slate-600">
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="saveIndividual('${s.studentId}')" class="bg-emerald-500 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-emerald-600 shadow-sm transition active:scale-95">💾</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            if(filtered.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>`;
+        }
+
+        document.getElementById("adminSearch").addEventListener("input", () => renderTable(allData));
+
+        // --- Save Individual Data ---
+        async function saveIndividual(sid) {
+            Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+            
+            let midScores = [];
+            for(let i=0; i<11; i++) midScores.push(document.getElementById(`mid-${sid}-${i}`).value);
+            
+            let finalScores = [];
+            for(let i=0; i<11; i++) finalScores.push(document.getElementById(`final-${sid}-${i}`).value);
+
+            const payload = {
+                action: 'adminUpdate',
+                sheetName: document.getElementById("adminSheetSelect").value,
+                studentId: sid,
+                newNumber: document.getElementById(`num-${sid}`).value,
+                newName: document.getElementById(`name-${sid}`).value,
+                // แก้ไขจุดที่ 2: ดึงค่าจากช่องห้องเรียนที่เพิ่มเข้ามา (ไม่ส่ง "xxx" แล้ว)
+                newClass: document.getElementById(`class-${sid}`).value, 
+                newPassword: document.getElementById(`pass-${sid}`).value,
+                midScores: midScores,
+                finalScores: finalScores
+            };
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const result = await res.json();
+                if(result.result === 'success') Swal.fire({ icon: 'success', title: 'บันทึกเรียบร้อย', timer: 1000, showConfirmButton: false });
+                else throw new Error(result.message);
+            } catch(e) { Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error'); }
+        }
+
+        // --- Header Management ---
+        function openHeaderModal() {
+            const midContainer = document.getElementById("midHeaderInputs");
+            const finalContainer = document.getElementById("finalHeaderInputs");
+            midContainer.innerHTML = '';
+            finalContainer.innerHTML = '';
+
+            for(let i=0; i<10; i++) {
+                let label = `งานที่ ${i+1}`;
+                midContainer.innerHTML += `<div class="flex items-center gap-3"><span class="text-xs font-bold w-16 text-blue-700 text-right">${label}:</span><input id="head-mid-${i}" value="${headerNames[i] || ''}" class="flex-1 border border-blue-200 px-3 py-1.5 rounded-lg text-sm outline-none focus:border-blue-500 transition"></div>`;
+            }
+
+            for(let i=0; i<10; i++) {
+                let realIndex = i + 12; 
+                let label = `งานที่ ${i+1}`;
+                finalContainer.innerHTML += `<div class="flex items-center gap-3"><span class="text-xs font-bold w-16 text-green-700 text-right">${label}:</span><input id="head-final-${i}" value="${headerNames[realIndex] || ''}" class="flex-1 border border-green-200 px-3 py-1.5 rounded-lg text-sm outline-none focus:border-green-500 transition"></div>`;
+            }
+            
+            document.getElementById("headerModal").classList.remove("hidden");
+        }
+
+        async function saveHeaders() {
+            let midHeaders = [];
+            for(let i=0; i<10; i++) midHeaders.push(document.getElementById(`head-mid-${i}`).value);
+            midHeaders.push("สอบกลางภาค");
+            
+            let finalHeaders = [];
+            for(let i=0; i<10; i++) finalHeaders.push(document.getElementById(`head-final-${i}`).value);
+            finalHeaders.push("สอบปลายภาค");
+
+            Swal.fire({ title: 'กำลังบันทึกชื่อหัวข้อ...', didOpen: () => Swal.showLoading() });
+            
+            await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'updateHeaders',
+                    sheetName: document.getElementById("adminSheetSelect").value,
+                    midHeaders: midHeaders,
+                    finalHeaders: finalHeaders
+                })
+            });
+            
+            document.getElementById("headerModal").classList.add("hidden");
+            reloadAdminData();
+            Swal.fire('Success', 'บันทึกชื่องานเรียบร้อย\nระบบเติม "สอบกลางภาค/ปลายภาค" ให้แล้ว', 'success');
+        }
+
+        // --- Reset All Passwords ---
+        async function resetAllPasswords() {
+            const { value: pass } = await Swal.fire({ 
+                title: 'รีเซ็ตรหัสผ่านนักเรียนทุกคน', 
+                input: 'text', 
+                inputLabel: 'ระบุรหัสผ่านเริ่มต้นใหม่', 
+                inputValue: '1234', 
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444'
+            });
+            
+            if (pass) {
+                Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+                try {
+                    const res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ 
+                            action: 'resetAllPasswords', 
+                            newDefaultPass: pass, 
+                            sheetName: document.getElementById("adminSheetSelect").value 
+                        }) 
+                    });
+                    const result = await res.json();
+                    if (result.result === 'success') {
+                        Swal.fire('สำเร็จ', 'รีเซ็ตเรียบร้อย', 'success');
+                        reloadAdminData();
+                    }
+                } catch (e) { Swal.fire('Error', 'ไม่สามารถรีเซ็ตได้', 'error'); }
+            }
+        }
+    </script>
+</body>
+</html>
