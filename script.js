@@ -1,7 +1,9 @@
 // *** สำคัญ: ตรวจสอบ URL นี้ให้เป็น URL ล่าสุดจากการ Deploy (New Version) ของคุณครูนะครับ ***
 const API_URL = "https://script.google.com/macros/s/AKfycbxDOnMKpsJL8fQEVs6H5CVM6YUu04Ep_TkbTrQg_84iP20xleR49R8sPgsry44DhaDuZA/exec";
 
-// ฟังก์ชันวิ่งตัวเลข
+// เกณฑ์สอบผ่าน (12 คะแนน)
+const EXAM_PASS_SCORE = 12; 
+
 function animateCounter(id, target, suffix = "") {
     const obj = document.getElementById(id);
     if (!obj) return;
@@ -14,17 +16,11 @@ function animateCounter(id, target, suffix = "") {
     function update(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        
         const isGrade = id === 'grade';
         const numValue = isGrade ? (progress * targetNum).toFixed(2) : Math.floor(progress * targetNum);
-        
         obj.innerText = numValue + suffix;
-        
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        } else {
-            obj.innerText = (isGrade ? targetNum.toFixed(2) : Math.round(targetNum)) + suffix;
-        }
+        if (progress < 1) requestAnimationFrame(update);
+        else obj.innerText = (isGrade ? targetNum.toFixed(2) : Math.round(targetNum)) + suffix;
     }
     requestAnimationFrame(update);
 }
@@ -64,19 +60,19 @@ async function fetchScore() {
         
         displayResult(data);
 
-        // *** เพิ่ม: ดักจับถ้ารหัสเป็น 1234 ให้บังคับเปลี่ยน ***
+        // *** ส่วนที่ผมทำหายไป: นำกลับมาใส่คืนให้แล้วครับ ***
+        // ถ้าใช้รหัส 1234 ให้แจ้งเตือนและบังคับเปลี่ยนทันที
         if (password === "1234") {
             Swal.fire({
                 icon: 'warning',
                 title: 'แจ้งเตือนความปลอดภัย',
                 text: 'คุณยังใช้รหัสผ่านเริ่มต้น (1234) กรุณาตั้งรหัสผ่านใหม่เพื่อความเป็นส่วนตัว',
-                allowOutsideClick: false, // ห้ามคลิกออก
+                allowOutsideClick: false,
                 confirmButtonText: 'เปลี่ยนรหัสผ่านเดี๋ยวนี้',
-                confirmButtonColor: '#d97706' // สีส้ม
+                confirmButtonColor: '#d97706'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // เปิด Modal แบบบังคับ (ส่ง true ไป)
-                    openChangePassModal(true);
+                    openChangePassModal(true); // เปิด Modal แบบบังคับ (ซ่อนปุ่มยกเลิก)
                 }
             });
         }
@@ -120,29 +116,49 @@ function displayResult(studentData) {
         if (!scoresObj) return "";
         return Object.entries(scoresObj).map(([key, value]) => {
             if (!key || value === "" || value === null) return "";
+
             let displayValue = value;
             let pillClass = "bg-slate-100 text-slate-600"; 
+
             if (value === "MISSING") {
                 displayValue = "ยังไม่ส่ง";
                 pillClass = "bg-red-50 text-red-600 border border-red-100";
             } else if (!isNaN(value)) {
-                if (parseFloat(value) >= 0) pillClass = "bg-emerald-50 text-emerald-600 border border-emerald-100";
+                let numVal = parseFloat(value);
+                
+                // 1. สีเขียวเป็นค่าเริ่มต้น
+                if (numVal >= 0) pillClass = "bg-emerald-50 text-emerald-600 border border-emerald-100";
+                
+                // 2. เช็คเงื่อนไขพิเศษ: สอบกลางภาค < 12 เป็นสีแดง
+                if (key.includes("สอบกลางภาค")) {
+                    if (numVal < EXAM_PASS_SCORE) {
+                        pillClass = "bg-red-50 text-red-600 border border-red-100 font-bold";
+                        displayValue = `${value} (ไม่ผ่าน)`;
+                    }
+                }
             }
+
             return `<tr class="hover:bg-slate-50 transition-colors">
                 <td class="p-4 text-sm font-medium text-slate-700">${key}</td>
-                <td class="p-4 text-center"><span class="px-3 py-1 rounded-md text-xs font-bold ${pillClass}">${displayValue}</span></td>
+                <td class="p-4 text-center">
+                    <span class="px-3 py-1 rounded-md text-xs font-bold ${pillClass}">${displayValue}</span>
+                </td>
             </tr>`;
         }).join('');
     };
 
     document.getElementById("midtermTable").querySelector("tbody").innerHTML = createRows(studentData.midtermScores);
     document.getElementById("finalTable").querySelector("tbody").innerHTML = createRows(studentData.finalScores);
+
     animateCounter("total", calculatedTotal);
     document.getElementById("grade").innerText = calculatedGrade;
+
     document.getElementById("result").classList.remove("hidden");
     
     const cards = document.querySelectorAll('.card-base');
-    cards.forEach((card, index) => { setTimeout(() => card.classList.add('show'), index * 150); });
+    cards.forEach((card, index) => {
+        setTimeout(() => card.classList.add('show'), index * 150);
+    });
 
     updateDashboard(studentData);
 }
@@ -157,6 +173,7 @@ function updateDashboard(studentData) {
 
     for (const [key, val] of Object.entries(allWorks)) {
         if (key && val !== "") {
+            // ไม่นับช่องสอบเป็นชิ้นงาน
             if (key.includes("สอบกลางภาค") || key.includes("สอบปลายภาค")) continue;
             totalItems++;
             if (val !== "MISSING") submitted++;
@@ -174,18 +191,14 @@ function updateDashboard(studentData) {
     }, 500);
 }
 
-// --- ส่วนจัดการรหัสผ่าน (แก้ไขใหม่: รองรับการบังคับเปลี่ยน) ---
+// --- ส่วนจัดการรหัสผ่าน ---
 function openChangePassModal(force = false) { 
     document.getElementById('changePassBox').classList.remove('hidden');
-    
-    // ถ้า force = true (คือยังใช้ 1234) ให้ซ่อนปุ่มยกเลิก
     const cancelBtn = document.getElementById('btnCancelPass');
     if (cancelBtn) {
-        if (force) {
-            cancelBtn.classList.add('hidden'); // ซ่อนปุ่มยกเลิก
-        } else {
-            cancelBtn.classList.remove('hidden'); // โชว์ปุ่มยกเลิก (กรณีเปลี่ยนเองตามปกติ)
-        }
+        // ถ้า force=true (บังคับเปลี่ยน) ให้ซ่อนปุ่มยกเลิก
+        if (force) cancelBtn.classList.add('hidden');
+        else cancelBtn.classList.remove('hidden');
     }
 }
 
@@ -212,12 +225,9 @@ async function submitChangePassword() {
                 document.getElementById("loadingOverlay").classList.add("hidden");
                 
                 if (response.result === "success") {
-                    document.getElementById('changePassBox').classList.add('hidden'); // ปิด Modal
+                    document.getElementById('changePassBox').classList.add('hidden');
                     Swal.fire('สำเร็จ', response.message, 'success').then(() => {
-                        // ไม่ต้อง Reload หน้าแล้ว อัปเดตค่า input password เป็นค่าใหม่เลย (เผื่อกดปุ่มเปลี่ยนอีกรอบ)
                         document.getElementById("password").value = newPass; 
-                        
-                        // ถ้าเป็นการบังคับเปลี่ยน ให้แสดงปุ่มยกเลิกกลับมาเหมือนเดิม เผื่อครั้งหน้าเปลี่ยนเอง
                         const cancelBtn = document.getElementById('btnCancelPass');
                         if (cancelBtn) cancelBtn.classList.remove('hidden');
                     });
